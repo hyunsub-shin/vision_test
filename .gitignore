@@ -1,0 +1,19 @@
+# Virtual Environment
+venv_vision/
+NG_images/
+images/
+doc/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
