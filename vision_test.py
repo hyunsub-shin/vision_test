@@ -5,9 +5,13 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
+from PyQt5 import QtCore
 import datetime
 import os
 import json
+
+# CI 환경 변수 설정 Test
+# os.environ['CI'] = 'true'
 
 # UI 파일 로드
 form_class = uic.loadUiType("vision_test.ui")[0]
@@ -543,4 +547,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = SMTInspectionApp()
     ex.show()
+    if os.environ.get('CI'):
+        QtCore.QTimer.singleShot(3000, sys.exit)
     sys.exit(app.exec_())
