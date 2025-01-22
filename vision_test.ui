@@ -56,7 +56,7 @@
     <property name="geometry">
      <rect>
       <x>670</x>
-      <y>760</y>
+      <y>783</y>
       <width>141</width>
       <height>51</height>
      </rect>
@@ -69,7 +69,7 @@
     <property name="geometry">
      <rect>
       <x>820</x>
-      <y>760</y>
+      <y>783</y>
       <width>131</width>
       <height>51</height>
      </rect>
@@ -82,7 +82,7 @@
     <property name="geometry">
      <rect>
       <x>960</x>
-      <y>760</y>
+      <y>783</y>
       <width>121</width>
       <height>51</height>
      </rect>
@@ -117,12 +117,12 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QSlider" name="threshold_slider">
+   <widget class="QSlider" name="diff_threshold_slider">
     <property name="geometry">
      <rect>
-      <x>770</x>
+      <x>800</x>
       <y>725</y>
-      <width>521</width>
+      <width>491</width>
       <height>22</height>
      </rect>
     </property>
@@ -136,17 +136,17 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QLabel" name="threshold_label">
+   <widget class="QLabel" name="diff_threshold_label">
     <property name="geometry">
      <rect>
       <x>670</x>
       <y>720</y>
-      <width>91</width>
+      <width>111</width>
       <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>임계값: 100</string>
+     <string>diff 임계값: 100</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -156,7 +156,7 @@
     <property name="geometry">
      <rect>
       <x>1090</x>
-      <y>790</y>
+      <y>813</y>
       <width>151</width>
       <height>21</height>
      </rect>
@@ -166,7 +166,7 @@
     <property name="geometry">
      <rect>
       <x>1090</x>
-      <y>757</y>
+      <y>780</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -202,6 +202,41 @@
     </property>
     <property name="text">
      <string>기준 이미지 불러오기 </string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="ng_threshold_label">
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>750</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>판정 임계값: 0.5</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QSlider" name="ng_threshold_slider">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>752</y>
+      <width>491</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>15</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
     </property>
    </widget>
   </widget>

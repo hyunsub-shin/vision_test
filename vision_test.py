@@ -19,6 +19,12 @@ class SMTInspectionApp(QMainWindow, form_class):
         self.reference_image = None
         self.current_image = None
         
+        # diff_threshold 초기값 설정
+        self.diff_threshold = 10  # 기본값 설정
+        
+        # ng_threshold 초기값 설정 (0.5%)
+        self.ng_threshold = 0.5
+        
         # 카메라 선택 콤보박스 설정
         self.camera_list = self.get_available_cameras()
         self.camera_comboBox.addItems([f"카메라 {i}" for i in range(len(self.camera_list))])
@@ -34,15 +40,21 @@ class SMTInspectionApp(QMainWindow, form_class):
             sys.exit()
             
         self.counter = 1
-        self.ng_threshold = 10  # 기본값 조정
-        # self.threshold_slider.setMinimum(1)
-        # self.threshold_slider.setMaximum(100)
-        self.threshold_slider.setValue(self.ng_threshold)
-        self.threshold_slider.valueChanged.connect(self.update_threshold)
+
+        # diff_threshold 슬라이더 설정
+        self.diff_threshold_slider.setValue(self.diff_threshold)
+        self.diff_threshold_slider.valueChanged.connect(self.update_diff_threshold)
+        
+        # ng_threshold 슬라이더 설정 (0.1 ~ 10.0, 0.1 단위)
+        self.ng_threshold_slider.setMinimum(1)  # 0.1%
+        self.ng_threshold_slider.setMaximum(100)  # 10.0%
+        self.ng_threshold_slider.setValue(int(self.ng_threshold * 10))
+        self.ng_threshold_slider.valueChanged.connect(self.update_ng_threshold)
         
         # 초기값을 라벨에 표시
-        self.threshold_label.setText(f"임계값: {self.ng_threshold}")
-          
+        self.diff_threshold_label.setText(f"diff 임계값: {self.diff_threshold}")
+        self.ng_threshold_label.setText(f"판정 임계값: {self.ng_threshold:.1f}%")
+        
         # 버튼 연결
         self.ref_button.clicked.connect(self.set_reference)
         
@@ -226,9 +238,16 @@ class SMTInspectionApp(QMainWindow, form_class):
         scaled_image = convert_to_qt_format.scaled(640, 480, Qt.KeepAspectRatio)
         self.reference_label.setPixmap(QPixmap.fromImage(scaled_image))
 
-    def update_threshold(self, value):
-        self.ng_threshold = value
-        self.threshold_label.setText(f"임계값: {value}")
+    def update_diff_threshold(self, value):
+        """diff_threshold 슬라이더 값 업데이트"""
+        self.diff_threshold = value
+        self.diff_threshold_label.setText(f"diff 임계값: {value}")
+
+    def update_ng_threshold(self, value):
+        """ng_threshold 슬라이더 값 업데이트"""
+        """0.1% 단위로 변환"""
+        self.ng_threshold = value / 10.0
+        self.ng_threshold_label.setText(f"판정 임계값: {self.ng_threshold:.1f}%")
 
     def start_roi_selection(self):
         if not self.roi_selection_mode:  # ROI 선택 모드가 아닐 때만 실행
@@ -363,7 +382,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         diff = cv2.absdiff(current_gray, reference_gray)
         
         # 4. 임계값 적용 (슬라이더 값 사용)
-        _, thresh = cv2.threshold(diff, self.ng_threshold, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(diff, self.diff_threshold, 255, cv2.THRESH_BINARY)
         
         # 5. 모폴로지 연산으로 노이즈 제거
         kernel = np.ones((3,3), np.uint8)
@@ -409,7 +428,7 @@ class SMTInspectionApp(QMainWindow, form_class):
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
         # 차이 비율이 임계값을 넘을 때만 NG 처리
-        if diff_ratio > 0.5:  # 5%이상 차이날 때 NG
+        if diff_ratio > self.ng_threshold:  # 설정된 임계값 이상 차이날 때 NG
             has_significant_diff = True
 
         if has_significant_diff:
@@ -454,7 +473,7 @@ class SMTInspectionApp(QMainWindow, form_class):
                 # ROI 정보를 포함한 데이터 저장
                 data = {
                     'roi': self.roi,
-                    'threshold': self.ng_threshold
+                    'threshold': self.diff_threshold
                 }
                 
                 # 이미지와 설정 저장
@@ -488,8 +507,8 @@ class SMTInspectionApp(QMainWindow, form_class):
                     with open(file_name + '.json', 'r') as f:
                         data = json.load(f)
                         self.roi = tuple(data['roi'])
-                        self.ng_threshold = data['threshold']
-                        self.threshold_slider.setValue(self.ng_threshold)
+                        self.diff_threshold = data['threshold']
+                        self.diff_threshold_slider.setValue(self.diff_threshold)
                 except:
                     QMessageBox.warning(self, "경고", "설정 파일을 찾을 수 없습니다. 기본값을 사용합니다.")
                 
