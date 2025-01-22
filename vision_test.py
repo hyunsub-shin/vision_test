@@ -14,7 +14,14 @@ import json
 # os.environ['CI'] = 'true'
 
 # UI 파일 로드
-form_class = uic.loadUiType("vision_test.ui")[0]
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+form_class = uic.loadUiType(resource_path("vision_test.ui"))[0]
 
 class MockCamera:
     def __init__(self, width=640, height=480):
