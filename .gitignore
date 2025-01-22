@@ -1,5 +1,7 @@
 # Virtual Environment
 venv_vision/
+build/
+dist/
 NG_images/
 ref_image/
 # images/
