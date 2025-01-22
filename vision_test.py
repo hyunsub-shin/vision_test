@@ -380,7 +380,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
         
         # 최소 면적 임계값 조정
-        min_area = 80  # 노이즈 제거를 위해 증가
+        min_area = 100  # 노이즈 제거를 위한 최소 면적
         total_diff_area = 0
         
         for contour in contours:
@@ -402,6 +402,11 @@ class SMTInspectionApp(QMainWindow, form_class):
         # ROI 영역 대비 차이 영역의 비율 계산
         roi_area = (x2 - x1) * (y2 - y1)
         diff_ratio = (total_diff_area / roi_area) * 100
+        
+        # 디버그 정보 표시
+        debug_info = f"Diff Area: {total_diff_area}, Ratio: {diff_ratio:.2f}%"
+        cv2.putText(result_image, debug_info, (10, 30), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
         # 차이 비율이 임계값을 넘을 때만 NG 처리
         if diff_ratio > 5:  # 5%이상 차이날 때 NG
@@ -425,6 +430,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         else:
             self.result_label.setText("PASS")
             self.result_label.setStyleSheet("background-color: #4caf50; color: white; font-size: 24px; font-weight: bold; padding: 10px; border-radius: 5px;")
+            self.display_image(result_image)
 
     def save_reference_image(self):
         """기준 이미지 저장"""
