@@ -16,98 +16,152 @@ import json
 # UI 파일 로드
 form_class = uic.loadUiType("vision_test.ui")[0]
 
+class MockCamera:
+    def __init__(self, width=640, height=480):
+        self.width = width
+        self.height = height
+        self.is_opened = True
+        # 테스트용 패턴 이미지 생성
+        self.frame = np.zeros((height, width, 3), dtype=np.uint8)
+        # 중앙에 흰색 사각형 그리기
+        self.frame[height//4:3*height//4, width//4:3*width//4] = 255
+
+    def isOpened(self):
+        return self.is_opened
+
+    def read(self):
+        if not self.is_opened:
+            return False, None
+        # 약간의 노이즈 추가하여 실제 카메라처럼 보이게 함
+        noise = np.random.normal(0, 2, self.frame.shape).astype(np.uint8)
+        frame = cv2.add(self.frame.copy(), noise)
+        return True, frame
+
+    def release(self):
+        self.is_opened = False
+        
 class SMTInspectionApp(QMainWindow, form_class):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.reference_image = None
-        self.current_image = None
         
-        # manual / Auto mode 설정 default : manual
-        self.auto_mode = False
-        self.auto_checkbox.setChecked(self.auto_mode)
-        self.check_button.setEnabled(True)  # 수동 검사 버튼 활성화
+        # CI 환경 확인
+        self.is_ci = os.environ.get('CI')
         
-        # diff_threshold 초기값 설정
-        self.diff_threshold = 10  # 기본값 설정
-        
-        # ng_threshold 초기값 설정 (0.5%)
-        self.ng_threshold = 0.5
-        
-        # 카메라 선택 콤보박스 설정
-        self.camera_list = self.get_available_cameras()
-        self.camera_comboBox.addItems([f"카메라 {i}" for i in range(len(self.camera_list))])
-        self.camera_comboBox.currentIndexChanged.connect(self.change_camera)
-        
-        # 기본 카메라 연결
-        self.current_camera_index = 0
-        self.camera = cv2.VideoCapture(self.current_camera_index)
-        
-        # 카메라 연결 확인
-        if not self.camera.isOpened():
-            QMessageBox.critical(self, "오류", "카메라를 찾을 수 없습니다.")
-            sys.exit()
+        if self.is_ci:
+            print("Running in CI environment with mock camera")
+            try:
+                # 가상 카메라 초기화 전에 기존 카메라 객체 해제
+                if hasattr(self, 'camera') and self.camera is not None:
+                    self.camera.release()
+                    
+                self.camera = MockCamera()
+                self.camera_running = True
+                print("Mock camera initialized successfully")
+            except Exception as e:
+                print(f"Error initializing mock camera: {str(e)}")
+                self.camera = None
+                self.camera_running = False
             
-        self.counter = 1
+            # 타이머 설정
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_frame)
+            self.timer.start(30)
+            
+            # 3초 후 자동 종료
+            self.close_timer = QTimer()
+            self.close_timer.timeout.connect(self.close)
+            self.close_timer.setSingleShot(True)
+            self.close_timer.start(3000)
+        else:
+            self.reference_image = None
+            self.current_image = None
+            
+            # manual / Auto mode 설정 default : manual
+            self.auto_mode = False
+            self.auto_checkbox.setChecked(self.auto_mode)
+            self.check_button.setEnabled(True)  # 수동 검사 버튼 활성화
+            
+            # diff_threshold 초기값 설정
+            self.diff_threshold = 10  # 기본값 설정
+            
+            # ng_threshold 초기값 설정 (0.5%)
+            self.ng_threshold = 0.5
+            
+            # 카메라 선택 콤보박스 설정
+            self.camera_list = self.get_available_cameras()
+            self.camera_comboBox.addItems([f"카메라 {i}" for i in range(len(self.camera_list))])
+            self.camera_comboBox.currentIndexChanged.connect(self.change_camera)
+            
+            # 기본 카메라 연결
+            self.current_camera_index = 0
+            self.camera = cv2.VideoCapture(self.current_camera_index)
+            
+            # 카메라 연결 확인
+            if not self.camera.isOpened():
+                QMessageBox.critical(self, "오류", "카메라를 찾을 수 없습니다.")
+                sys.exit()
+            
+            self.counter = 1
 
-        # diff_threshold 슬라이더 설정
-        self.diff_threshold_slider.setValue(self.diff_threshold)
-        self.diff_threshold_slider.valueChanged.connect(self.update_diff_threshold)
-        
-        # ng_threshold 슬라이더 설정 (0.1 ~ 10.0, 0.1 단위)
-        self.ng_threshold_slider.setMinimum(1)  # 0.1%
-        self.ng_threshold_slider.setMaximum(100)  # 10.0%
-        self.ng_threshold_slider.setValue(int(self.ng_threshold * 10))
-        self.ng_threshold_slider.valueChanged.connect(self.update_ng_threshold)
-        
-        # 초기값을 라벨에 표시
-        self.diff_threshold_label.setText(f"diff 임계값: {self.diff_threshold}")
-        self.ng_threshold_label.setText(f"판정 임계값: {self.ng_threshold:.1f}%")
-        
-        # 버튼 연결
-        self.ref_button.clicked.connect(self.set_reference)
-        
-        # 카메라 상태 변수 추가
-        self.camera_running = False
-        
-        # Start/Stop 버튼 연결
-        self.start_stop_button.clicked.connect(self.toggle_camera)
-        
-        # 타이머 설정 - 카메라 프레임 업데이트
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(500)  # 1000ms 간격으로 프레임 업데이트
+            # diff_threshold 슬라이더 설정
+            self.diff_threshold_slider.setValue(self.diff_threshold)
+            self.diff_threshold_slider.valueChanged.connect(self.update_diff_threshold)
+            
+            # ng_threshold 슬라이더 설정 (0.1 ~ 10.0, 0.1 단위)
+            self.ng_threshold_slider.setMinimum(1)  # 0.1%
+            self.ng_threshold_slider.setMaximum(100)  # 10.0%
+            self.ng_threshold_slider.setValue(int(self.ng_threshold * 10))
+            self.ng_threshold_slider.valueChanged.connect(self.update_ng_threshold)
+            
+            # 초기값을 라벨에 표시
+            self.diff_threshold_label.setText(f"diff 임계값: {self.diff_threshold}")
+            self.ng_threshold_label.setText(f"판정 임계값: {self.ng_threshold:.1f}%")
+            
+            # 버튼 연결
+            self.ref_button.clicked.connect(self.set_reference)
+            
+            # 카메라 상태 변수 추가
+            self.camera_running = False
+            
+            # Start/Stop 버튼 연결
+            self.start_stop_button.clicked.connect(self.toggle_camera)
+            
+            # 타이머 설정 - 카메라 프레임 업데이트
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_frame)
+            self.timer.start(500)  # 1000ms 간격으로 프레임 업데이트
 
-        # # 카메라 해상도 설정
-        # self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 너비
-        # self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # 높이
-        # # 프레임레이트 설정
-        # self.camera.set(cv2.CAP_PROP_FPS, 30)           # 30fps
+            # # 카메라 해상도 설정
+            # self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 너비
+            # self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # 높이
+            # # 프레임레이트 설정
+            # self.camera.set(cv2.CAP_PROP_FPS, 30)           # 30fps
 
-        # ROI 관련 변수 초기화
-        self.roi = None
-        self.drawing = False
-        self.roi_start = None
-        self.roi_selection_mode = False
-        
-        # ROI 버튼 이벤트 연결 (버튼은 UI 파일에서 정의)
-        self.roi_button.clicked.connect(self.start_roi_selection)
-        
-        # 카메라 레이블에 마우스 이벤트 연결
-        self.camera_label.mousePressEvent = self.mouse_press
-        self.camera_label.mouseReleaseEvent = self.mouse_release
-        self.camera_label.mouseMoveEvent = self.mouse_move
+            # ROI 관련 변수 초기화
+            self.roi = None
+            self.drawing = False
+            self.roi_start = None
+            self.roi_selection_mode = False
+            
+            # ROI 버튼 이벤트 연결 (버튼은 UI 파일에서 정의)
+            self.roi_button.clicked.connect(self.start_roi_selection)
+            
+            # 카메라 레이블에 마우스 이벤트 연결
+            self.camera_label.mousePressEvent = self.mouse_press
+            self.camera_label.mouseReleaseEvent = self.mouse_release
+            self.camera_label.mouseMoveEvent = self.mouse_move
 
-        # 메시지 표시 상태를 저장하는 변수 추가
-        self.roi_warning_shown = False
+            # 메시지 표시 상태를 저장하는 변수 추가
+            self.roi_warning_shown = False
 
-        # 기준 이미지 저장/불러오기 버튼 연결
-        self.save_ref_button.clicked.connect(self.save_reference_image)
-        self.load_ref_button.clicked.connect(self.load_reference_image)
-        
-        # check_button 연결 & auto_checkbox 연결
-        self.auto_checkbox.stateChanged.connect(self.toggle_auto_mode)
-        self.check_button.clicked.connect(self.inspect_image)
+            # 기준 이미지 저장/불러오기 버튼 연결
+            self.save_ref_button.clicked.connect(self.save_reference_image)
+            self.load_ref_button.clicked.connect(self.load_reference_image)
+            
+            # check_button 연결 & auto_checkbox 연결
+            self.auto_checkbox.stateChanged.connect(self.toggle_auto_mode)
+            self.check_button.clicked.connect(self.inspect_image)
 
     def toggle_auto_mode(self):
         """Auto mode 토글"""
