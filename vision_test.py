@@ -62,12 +62,7 @@ class SMTInspectionApp(QMainWindow, form_class):
                 print(f"Error initializing mock camera: {str(e)}")
                 self.camera = None
                 self.camera_running = False
-            
-            # 타이머 설정
-            self.timer = QTimer()
-            self.timer.timeout.connect(self.update_frame)
-            self.timer.start(30)
-            
+                        
             # 3초 후 자동 종료
             self.close_timer = QTimer()
             self.close_timer.timeout.connect(self.close)
