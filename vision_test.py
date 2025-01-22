@@ -7,6 +7,7 @@ from PyQt5.QtCore import *
 from PyQt5 import uic
 import datetime
 import os
+import json
 
 # UI 파일 로드
 form_class = uic.loadUiType("vision_test.ui")[0]
@@ -78,6 +79,10 @@ class SMTInspectionApp(QMainWindow, form_class):
 
         # 메시지 표시 상태를 저장하는 변수 추가
         self.roi_warning_shown = False
+
+        # 기준 이미지 저장/불러오기 버튼 연결
+        self.save_ref_button.clicked.connect(self.save_reference_image)
+        self.load_ref_button.clicked.connect(self.load_reference_image)
 
     def get_available_cameras(self):
         """사용 가능한 카메라 목록 반환"""
@@ -420,6 +425,73 @@ class SMTInspectionApp(QMainWindow, form_class):
         else:
             self.result_label.setText("PASS")
             self.result_label.setStyleSheet("background-color: #4caf50; color: white; font-size: 24px; font-weight: bold; padding: 10px; border-radius: 5px;")
+
+    def save_reference_image(self):
+        """기준 이미지 저장"""
+        if self.reference_image is None:
+            QMessageBox.warning(self, "경고", "저장할 기준 이미지가 없습니다.")
+            return
+            
+        try:
+            # 저장 경로 선택 대화상자
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "기준 이미지 저장",
+                "./ref_image",
+                "Images (*.png *.jpg *.jpeg)"
+            )
+            
+            if file_name:
+                # 디렉토리가 없으면 생성
+                os.makedirs(os.path.dirname(file_name), exist_ok=True)
+                
+                # ROI 정보를 포함한 데이터 저장
+                data = {
+                    'roi': self.roi,
+                    'threshold': self.ng_threshold
+                }
+                
+                # 이미지와 설정 저장
+                cv2.imwrite(file_name, self.reference_image)
+                with open(file_name + '.json', 'w') as f:
+                    json.dump(data, f)
+                    
+                QMessageBox.information(self, "알림", "기준 이미지가 저장되었습니다.")
+        except Exception as e:
+            QMessageBox.warning(self, "오류", f"이미지 저장 중 오류가 발생했습니다: {str(e)}")
+
+    def load_reference_image(self):
+        """저장된 기준 이미지 불러오기"""
+        try:
+            # 파일 선택 대화상자
+            file_name, _ = QFileDialog.getOpenFileName(
+                self,
+                "기준 이미지 불러오기",
+                "./ref_image",
+                "Images (*.png *.jpg *.jpeg)"
+            )
+            
+            if file_name:
+                # 이미지 로드
+                self.reference_image = cv2.imread(file_name)
+                if self.reference_image is None:
+                    raise Exception("이미지를 불러올 수 없습니다.")
+                
+                # 설정 파일 로드
+                try:
+                    with open(file_name + '.json', 'r') as f:
+                        data = json.load(f)
+                        self.roi = tuple(data['roi'])
+                        self.ng_threshold = data['threshold']
+                        self.threshold_slider.setValue(self.ng_threshold)
+                except:
+                    QMessageBox.warning(self, "경고", "설정 파일을 찾을 수 없습니다. 기본값을 사용합니다.")
+                
+                # 이미지 표시
+                self.display_reference_image(self.reference_image)
+                QMessageBox.information(self, "알림", "기준 이미지를 불러왔습니다.")
+        except Exception as e:
+            QMessageBox.warning(self, "오류", f"이미지 불러오기 중 오류가 발생했습니다: {str(e)}")
 
     def closeEvent(self, event):
         # 프로그램 종료 시 카메라 해제

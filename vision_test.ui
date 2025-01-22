@@ -178,6 +178,32 @@
      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
     </property>
    </widget>
+   <widget class="QPushButton" name="save_ref_button">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>660</y>
+      <width>161</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>기준 이미지 저장</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="load_ref_button">
+    <property name="geometry">
+     <rect>
+      <x>484</x>
+      <y>660</y>
+      <width>161</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>기준 이미지 불러오기 </string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
