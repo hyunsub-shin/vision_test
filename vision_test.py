@@ -17,7 +17,15 @@ class SMTInspectionApp(QMainWindow, form_class):
         self.setupUi(self)
         self.reference_image = None
         self.current_image = None
-        self.camera = cv2.VideoCapture(1)  # 0은 내장캠, 1은 첫 번째 외부 USB 카메라
+        
+        # 카메라 선택 콤보박스 설정
+        self.camera_list = self.get_available_cameras()
+        self.camera_comboBox.addItems([f"카메라 {i}" for i in range(len(self.camera_list))])
+        self.camera_comboBox.currentIndexChanged.connect(self.change_camera)
+        
+        # 기본 카메라 연결
+        self.current_camera_index = 0
+        self.camera = cv2.VideoCapture(self.current_camera_index)
         
         # 카메라 연결 확인
         if not self.camera.isOpened():
@@ -33,19 +41,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         
         # 초기값을 라벨에 표시
         self.threshold_label.setText(f"임계값: {self.ng_threshold}")
-        
-        # # 슬라이더 크기 고정
-        # self.threshold_slider.setFixedWidth(200)  # 너비를 200픽셀로 고정
-        # self.threshold_slider.setFixedHeight(20)  # 높이를 20픽셀로 고정
-        
-        # # 슬라이더 라벨도 고정 크기로 설정 (선택사항)
-        # self.threshold_label.setFixedWidth(100)
-        # self.threshold_label.setFixedHeight(20)
-        
-        # # 레이아웃에 슬라이더와 레이블 추가
-        # self.verticalLayout.addWidget(self.threshold_label)
-        # self.verticalLayout.addWidget(self.threshold_slider)
-        
+          
         # 버튼 연결
         self.ref_button.clicked.connect(self.set_reference)
         
@@ -83,6 +79,58 @@ class SMTInspectionApp(QMainWindow, form_class):
         # 메시지 표시 상태를 저장하는 변수 추가
         self.roi_warning_shown = False
 
+    def get_available_cameras(self):
+        """사용 가능한 카메라 목록 반환"""
+        available_cameras = []
+        # 검색 범위를 3개로 제한 (일반적으로 0, 1, 2만 사용)
+        for i in range(3):  
+            try:
+                # 먼저 기본 백엔드로 시도
+                cap = cv2.VideoCapture(i)
+                if cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret and frame is not None:  # 프레임이 실제로 존재하는지 확인
+                        available_cameras.append(i)
+                cap.release()
+            except Exception as e:
+                print(f"카메라 {i} 검색 중 오류: {str(e)}")
+                continue
+                
+        if not available_cameras:  # 사용 가능한 카메라가 없으면
+            print("사용 가능한 카메라가 없습니다. 기본 카메라(0)를 사용합니다.")
+            return [0]
+            
+        return available_cameras
+
+    def change_camera(self, index):
+        """카메라 변경"""
+        try:
+            if self.camera_running:
+                self.toggle_camera()  # 현재 카메라 중지
+            
+            self.current_camera_index = self.camera_list[index]
+            
+            # 카메라 초기화 전에 이전 인스턴스 해제
+            if hasattr(self, 'camera') and self.camera is not None:
+                self.camera.release()
+                
+            # 기본 백엔드로 카메라 초기화
+            self.camera = cv2.VideoCapture(self.current_camera_index)
+            
+            if not self.camera.isOpened():
+                QMessageBox.warning(self, "경고", f"카메라 {self.current_camera_index}를 열 수 없습니다.")
+                return
+                
+            # # 카메라가 성공적으로 열렸을 때만 설정 적용
+            # self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            # self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            # self.camera.set(cv2.CAP_PROP_FPS, 30)
+            
+            if self.camera_running:
+                self.toggle_camera()  # 새 카메라 시작
+        except Exception as e:
+            QMessageBox.warning(self, "오류", f"카메라 변경 중 오류가 발생했습니다: {str(e)}")
+
     def toggle_camera(self):
         if not self.camera_running:
             # 카메라 시작
@@ -100,7 +148,10 @@ class SMTInspectionApp(QMainWindow, form_class):
             self.camera_label.setText("Camera Stopped")
             self.reference_image = None
             self.reference_label.clear()
+            self.reference_label.setText("기준 이미지")
             self.result_label.clear()
+            self.result_label.setText("검사결과")
+            self.result_label.setStyleSheet("background-color: #f0f0f0;")
             self.roi = None
             self.drawing = False
             self.roi_start = None
@@ -127,7 +178,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         else:
             # 프레임 읽기 실패 시 재시도
             self.camera.release()
-            self.camera = cv2.VideoCapture(1)  # 카메라 재연결 시도
+            self.camera = cv2.VideoCapture(self.current_camera_index)  # 카메라 재연결 시도
             if not self.camera.isOpened():
                 QMessageBox.critical(self, "오류", "카메라 연결이 끊어졌습니다.")
                 self.camera_running = False
