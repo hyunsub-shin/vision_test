@@ -4,7 +4,7 @@ NG_images/
 ref_image/
 # images/
 doc/
-*.png
+#*.png
 *.jpg
 *.jpeg
 *.gif

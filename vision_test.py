@@ -34,7 +34,7 @@ class SMTInspectionApp(QMainWindow, form_class):
             sys.exit()
             
         self.counter = 1
-        self.ng_threshold = 15  # 기본값 조정
+        self.ng_threshold = 10  # 기본값 조정
         # self.threshold_slider.setMinimum(1)
         # self.threshold_slider.setMaximum(100)
         self.threshold_slider.setValue(self.ng_threshold)
@@ -409,7 +409,7 @@ class SMTInspectionApp(QMainWindow, form_class):
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
         # 차이 비율이 임계값을 넘을 때만 NG 처리
-        if diff_ratio > 5:  # 5%이상 차이날 때 NG
+        if diff_ratio > 0.5:  # 5%이상 차이날 때 NG
             has_significant_diff = True
 
         if has_significant_diff:
