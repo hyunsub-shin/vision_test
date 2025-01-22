@@ -2,7 +2,7 @@
 venv_vision/
 NG_images/
 ref_image/
-images/
+# images/
 doc/
 *.png
 *.jpg
