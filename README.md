@@ -1,6 +1,6 @@
 # vision_test
 
 ## GUI Screenshot
-![GUI OK](images/GUI.png)
+![GUI OK](images/PASS.png)
 
-![GUI NG](images/GUI_NG.png)
+![GUI NG](images/NG.png)
