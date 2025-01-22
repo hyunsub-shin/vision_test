@@ -63,7 +63,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas numpy PyQt5
         if (Test-Path requirements.txt) { pip install -r requirements.txt }
         
     # 파일 구조 확인
@@ -77,153 +76,152 @@ jobs:
       env:
         CI: true  # CI 환경 변수 설정
       run: |
-        if (-Not (Test-Path txt2qrcode.py)) { Write-Host "Error: txt2qrcode.py not found!" ; exit 1 }  # 파일 존재 여부 확인
-        python txt2qrcode.py  # Python 스크립트 실행
+        if (-Not (Test-Path vision_test.py)) { Write-Host "Error: vision_test.py not found!" ; exit 1 }  # 파일 존재 여부 확인
+        python vision_test.py  # Python 스크립트 실행
 
-  # 릴리스 자동화를 위한 새로운 job
-  release:
-    needs: build
-    runs-on: windows-latest
-    # main 브랜치 푸시에서도 실행되도록 조건 수정
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+  # # 릴리스 자동화를 위한 새로운 job
+  # release:
+  #   needs: build
+  #   runs-on: windows-latest
+  #   # main 브랜치 푸시에서도 실행되도록 조건 수정
+  #   if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     
-    permissions:
-      contents: write
+  #   permissions:
+  #     contents: write
     
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0  # 전체 히스토리 가져오기
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #     with:
+  #       fetch-depth: 0  # 전체 히스토리 가져오기
     
-    # 버전 태그를 자동으로 생성하는 단계
-    - name: Create version tag
-      if: github.ref == 'refs/heads/main'  # main 브랜치에 push될 때만 실행
-      id: create_tag  # 다음 단계에서 이 단계의 출력을 참조하기 위한 ID
-      run: |
-        # 가장 최근 태그를 가져옴. 태그가 없으면 v1.0.0을 시작점으로 사용
-        $latest_tag = git describe --tags --abbrev=0 2>$null
-        if (-not $latest_tag) { $latest_tag = "v1.0.0" }
+  #   # 버전 태그를 자동으로 생성하는 단계
+  #   - name: Create version tag
+  #     if: github.ref == 'refs/heads/main'  # main 브랜치에 push될 때만 실행
+  #     id: create_tag  # 다음 단계에서 이 단계의 출력을 참조하기 위한 ID
+  #     run: |
+  #       # 가장 최근 태그를 가져옴. 태그가 없으면 v1.0.0을 시작점으로 사용
+  #       $latest_tag = git describe --tags --abbrev=0 2>$null
+  #       if (-not $latest_tag) { $latest_tag = "v1.0.0" }
         
-        # 버전 번호를 major.minor.patch로 분리
-        $version = $latest_tag -replace 'v', ''
-        $parts = $version -split '\.'
-        $major = $parts[0]
-        $minor = $parts[1]
-        $patch = [int]$parts[2] + 1
+  #       # 버전 번호를 major.minor.patch로 분리
+  #       $version = $latest_tag -replace 'v', ''
+  #       $parts = $version -split '\.'
+  #       $major = $parts[0]
+  #       $minor = $parts[1]
+  #       $patch = [int]$parts[2] + 1
         
-        # 새로운 태그 생성 (v1.0.1 형식)
-        $new_tag = "v$major.$minor.$patch"
+  #       # 새로운 태그 생성 (v1.0.1 형식)
+  #       $new_tag = "v$major.$minor.$patch"
         
-        # 디버깅을 위해 새 태그 정보 출력
-        Write-Host "Creating new tag: $new_tag"
+  #       # 디버깅을 위해 새 태그 정보 출력
+  #       Write-Host "Creating new tag: $new_tag"
         
-        # 다음 단계에서 사용할 수 있도록 태그 값을 GitHub Actions 출력 변수로 저장
-        "new_tag=$new_tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+  #       # 다음 단계에서 사용할 수 있도록 태그 값을 GitHub Actions 출력 변수로 저장
+  #       "new_tag=$new_tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
         
-        # Git 사용자 정보 설정
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
+  #       # Git 사용자 정보 설정
+  #       git config --global user.email "action@github.com"
+  #       git config --global user.name "GitHub Action"
         
-        # 새 태그 생성 및 원격 저장소에 푸시
-        git tag -a $new_tag -m "Release $new_tag"
-        git push origin $new_tag
+  #       # 새 태그 생성 및 원격 저장소에 푸시
+  #       git tag -a $new_tag -m "Release $new_tag"
+  #       git push origin $new_tag
     
-    - name: Fail if tag creation failed
-      if: steps.create_tag.outputs.new_tag == ''  # 태그 생성 실패 시
-      run: |
-        echo "Error: Tag creation failed!"  # 오류 메시지 출력
-        exit 1  # 실패 처리
+  #   - name: Fail if tag creation failed
+  #     if: steps.create_tag.outputs.new_tag == ''  # 태그 생성 실패 시
+  #     run: |
+  #       echo "Error: Tag creation failed!"  # 오류 메시지 출력
+  #       exit 1  # 실패 처리
         
-    # Python 설정
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: "3.9.12"
+  #   # Python 설정
+  #   - name: Set up Python
+  #     uses: actions/setup-python@v2
+  #     with:
+  #       python-version: "3.9.12"
     
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller PyQt5
-        if (Test-Path requirements.txt) { pip install -r requirements.txt }
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       if (Test-Path requirements.txt) { pip install -r requirements.txt }
     
-    # spec 파일 생성 및 수정
-    - name: Create and modify spec file
-      run: |
-        # spec 파일 생성
-        pyinstaller -w -F txt2qrcode.py
+  #   # spec 파일 생성 및 수정
+  #   - name: Create and modify spec file
+  #     run: |
+  #       # spec 파일 생성
+  #       pyinstaller -w -F vision_test.py
         
-        # spec 파일 수정 (Windows에 맞게 변경)
-        echo "# -*- mode: python ; coding: utf-8 -*-" > txt2qrcode.spec
-        echo "" >> txt2qrcode.spec
-        echo "block_cipher = None" >> txt2qrcode.spec
-        echo "" >> txt2qrcode.spec
-        echo "# UI 파일 추가" >> txt2qrcode.spec
-        echo "added_files = [" >> txt2qrcode.spec
-        echo "    ('txt2qrcode.ui', '.')" >> txt2qrcode.spec
-        echo "]" >> txt2qrcode.spec
-        echo "" >> txt2qrcode.spec
-        echo "a = Analysis(" >> txt2qrcode.spec
-        echo "    ['txt2qrcode.py']," >> txt2qrcode.spec
-        echo "    pathex=[]," >> txt2qrcode.spec
-        echo "    binaries=[]," >> txt2qrcode.spec
-        echo "    datas=added_files," >> txt2qrcode.spec
-        echo "    hiddenimports=[]," >> txt2qrcode.spec
-        echo "    hookspath=[]," >> txt2qrcode.spec
-        echo "    hooksconfig={}," >> txt2qrcode.spec
-        echo "    runtime_hooks=[]," >> txt2qrcode.spec
-        echo "    excludes=[]," >> txt2qrcode.spec
-        echo "    win_no_prefer_redirects=False," >> txt2qrcode.spec
-        echo "    win_private_assemblies=False," >> txt2qrcode.spec
-        echo "    cipher=block_cipher," >> txt2qrcode.spec
-        echo "    noarchive=False," >> txt2qrcode.spec
-        echo ")" >> txt2qrcode.spec
-        echo "" >> txt2qrcode.spec
-        echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> txt2qrcode.spec
-        echo "" >> txt2qrcode.spec
-        echo "exe = EXE(" >> txt2qrcode.spec
-        echo "    pyz," >> txt2qrcode.spec
-        echo "    a.scripts," >> txt2qrcode.spec
-        echo "    a.binaries," >> txt2qrcode.spec
-        echo "    a.zipfiles," >> txt2qrcode.spec
-        echo "    a.datas," >> txt2qrcode.spec
-        echo "    []," >> txt2qrcode.spec
-        echo "    name='txt2qrcode'," >> txt2qrcode.spec
-        echo "    debug=False," >> txt2qrcode.spec
-        echo "    bootloader_ignore_signals=False," >> txt2qrcode.spec
-        echo "    strip=False," >> txt2qrcode.spec
-        echo "    upx=True," >> txt2qrcode.spec
-        echo "    upx_exclude=[]," >> txt2qrcode.spec
-        echo "    runtime_tmpdir=None," >> txt2qrcode.spec
-        echo "    console=False," >> txt2qrcode.spec
-        echo "    disable_windowed_traceback=False," >> txt2qrcode.spec
-        echo "    target_arch=None," >> txt2qrcode.spec
-        echo "    codesign_identity=None," >> txt2qrcode.spec
-        echo "    entitlements_file=None," >> txt2qrcode.spec
-        echo ")" >> txt2qrcode.spec
+  #       # spec 파일 수정 (Windows에 맞게 변경)
+  #       echo "# -*- mode: python ; coding: utf-8 -*-" > vision_test.spec
+  #       echo "" >> vision_test.spec
+  #       echo "block_cipher = None" >> vision_test.spec
+  #       echo "" >> vision_test.spec
+  #       echo "# UI 파일 추가" >> vision_test.spec
+  #       echo "added_files = [" >> vision_test.spec
+  #       echo "    ('vision_test.ui', '.')" >> vision_test.spec
+  #       echo "]" >> vision_test.spec
+  #       echo "" >> vision_test.spec
+  #       echo "a = Analysis(" >> vision_test.spec
+  #       echo "    ['vision_test.py']," >> vision_test.spec
+  #       echo "    pathex=[]," >> vision_test.spec
+  #       echo "    binaries=[]," >> vision_test.spec
+  #       echo "    datas=added_files," >> vision_test.spec
+  #       echo "    hiddenimports=[]," >> vision_test.spec
+  #       echo "    hookspath=[]," >> vision_test.spec
+  #       echo "    hooksconfig={}," >> vision_test.spec
+  #       echo "    runtime_hooks=[]," >> vision_test.spec
+  #       echo "    excludes=[]," >> vision_test.spec
+  #       echo "    win_no_prefer_redirects=False," >> vision_test.spec
+  #       echo "    win_private_assemblies=False," >> vision_test.spec
+  #       echo "    cipher=block_cipher," >> vision_test.spec
+  #       echo "    noarchive=False," >> vision_test.spec
+  #       echo ")" >> vision_test.spec
+  #       echo "" >> vision_test.spec
+  #       echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> vision_test.spec
+  #       echo "" >> vision_test.spec
+  #       echo "exe = EXE(" >> vision_test.spec
+  #       echo "    pyz," >> vision_test.spec
+  #       echo "    a.scripts," >> vision_test.spec
+  #       echo "    a.binaries," >> vision_test.spec
+  #       echo "    a.zipfiles," >> vision_test.spec
+  #       echo "    a.datas," >> vision_test.spec
+  #       echo "    []," >> vision_test.spec
+  #       echo "    name='vision_test'," >> vision_test.spec
+  #       echo "    debug=False," >> vision_test.spec
+  #       echo "    bootloader_ignore_signals=False," >> vision_test.spec
+  #       echo "    strip=False," >> vision_test.spec
+  #       echo "    upx=True," >> vision_test.spec
+  #       echo "    upx_exclude=[]," >> vision_test.spec
+  #       echo "    runtime_tmpdir=None," >> vision_test.spec
+  #       echo "    console=False," >> vision_test.spec
+  #       echo "    disable_windowed_traceback=False," >> vision_test.spec
+  #       echo "    target_arch=None," >> vision_test.spec
+  #       echo "    codesign_identity=None," >> vision_test.spec
+  #       echo "    entitlements_file=None," >> vision_test.spec
+  #       echo ")" >> vision_test.spec
     
-    # 실행 파일 생성
-    - name: Create Executable
-      run: |
-        pyinstaller txt2qrcode.spec
+  #   # 실행 파일 생성
+  #   - name: Create Executable
+  #     run: |
+  #       pyinstaller vision_test.spec
     
-    - name: Check file structure
-      run: |
-        # Get-Location  # 현재 디렉토리 출력
-        Get-ChildItem -Path dist -Recurse
+  #   - name: Check file structure
+  #     run: |
+  #       # Get-Location  # 현재 디렉토리 출력
+  #       Get-ChildItem -Path dist -Recurse
 
-    # GitHub 릴리스를 생성하는 단계
-    - name: Create Release
-      if: steps.create_tag.outputs.new_tag != ''  # 태그가 성공적으로 생성된 경우에만 실행
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.create_tag.outputs.new_tag }}  # 이전 단계에서 생성한 태그 사용
-        files: |  # 릴리스에 포함할 파일들 # files 필드에 주석 있으면 패턴 매칭 안됨
-          dist/txt2qrcode.exe
-        name: Release ${{ steps.create_tag.outputs.new_tag }}  # 릴리스 제목
-        draft: false  # 초안 모드로 생성하지 않음
-        prerelease: false  # 정식 릴리스로 표시
-        generate_release_notes: true  # 자동으로 릴리스 노트 생성
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub API 접근을 위한 토큰
+  #   # GitHub 릴리스를 생성하는 단계
+  #   - name: Create Release
+  #     if: steps.create_tag.outputs.new_tag != ''  # 태그가 성공적으로 생성된 경우에만 실행
+  #     uses: softprops/action-gh-release@v1
+  #     with:
+  #       tag_name: ${{ steps.create_tag.outputs.new_tag }}  # 이전 단계에서 생성한 태그 사용
+  #       files: |  # 릴리스에 포함할 파일들 # files 필드에 주석 있으면 패턴 매칭 안됨
+  #         dist/vision_test.exe
+  #       name: Release ${{ steps.create_tag.outputs.new_tag }}  # 릴리스 제목
+  #       draft: false  # 초안 모드로 생성하지 않음
+  #       prerelease: false  # 정식 릴리스로 표시
+  #       generate_release_notes: true  # 자동으로 릴리스 노트 생성
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub API 접근을 위한 토큰
 
 
