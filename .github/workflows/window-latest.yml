@@ -1,5 +1,5 @@
 # 워크플로우 이름 정의
-name: Python package
+name: Vision Test CI
 
 # 워크플로우 실행 조건 설정
 on:
@@ -35,7 +35,7 @@ on:
 
 # 작업 정의
 jobs:
-  build:
+  build_test:
     runs-on: windows-latest  # Windows 환경에서 실행
     
     # 동시 실행 제어
@@ -63,6 +63,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install numpy pytest
         if (Test-Path requirements.txt) { pip install -r requirements.txt }
         
     # 파일 구조 확인
@@ -72,12 +73,24 @@ jobs:
         Get-ChildItem -Force  # 모든 파일 및 폴더 목록 출력
         
     # Python 스크립트 실행
-    - name: Run Python
+    - name: Run tests
       env:
         CI: true  # CI 환경 변수 설정
+        QT_QPA_PLATFORM: offscreen  # PyQt 헤드리스 모드 설정
+        PYTHONIOENCODING: utf-8     # Python 출력 인코딩 설정
       run: |
         if (-Not (Test-Path vision_test.py)) { Write-Host "Error: vision_test.py not found!" ; exit 1 }  # 파일 존재 여부 확인
         python vision_test.py  # Python 스크립트 실행
+
+    # # 테스트 결과나 스크린샷을 아티팩트로 저장하고 싶다면:
+    # - name: Upload test artifacts
+    #   if: always()
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: test-results
+    #     path: |
+    #       NG_images/
+    #       *.log
 
   # # 릴리스 자동화를 위한 새로운 job
   # release:
