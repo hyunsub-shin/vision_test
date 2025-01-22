@@ -19,6 +19,11 @@ class SMTInspectionApp(QMainWindow, form_class):
         self.reference_image = None
         self.current_image = None
         
+        # manual / Auto mode 설정 default : manual
+        self.auto_mode = False
+        self.auto_checkbox.setChecked(self.auto_mode)
+        self.check_button.setEnabled(True)  # 수동 검사 버튼 활성화
+        
         # diff_threshold 초기값 설정
         self.diff_threshold = 10  # 기본값 설정
         
@@ -67,7 +72,7 @@ class SMTInspectionApp(QMainWindow, form_class):
         # 타이머 설정 - 카메라 프레임 업데이트
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(1000)  # 1000ms 간격으로 프레임 업데이트
+        self.timer.start(500)  # 1000ms 간격으로 프레임 업데이트
 
         # # 카메라 해상도 설정
         # self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 너비
@@ -95,6 +100,15 @@ class SMTInspectionApp(QMainWindow, form_class):
         # 기준 이미지 저장/불러오기 버튼 연결
         self.save_ref_button.clicked.connect(self.save_reference_image)
         self.load_ref_button.clicked.connect(self.load_reference_image)
+        
+        # check_button 연결 & auto_checkbox 연결
+        self.auto_checkbox.stateChanged.connect(self.toggle_auto_mode)
+        self.check_button.clicked.connect(self.inspect_image)
+
+    def toggle_auto_mode(self):
+        """Auto mode 토글"""
+        self.auto_mode = self.auto_checkbox.isChecked()
+        self.check_button.setEnabled(not self.auto_mode)  # 수동 검사 버튼 활성화/비활성화
 
     def get_available_cameras(self):
         """사용 가능한 카메라 목록 반환"""
@@ -191,7 +205,9 @@ class SMTInspectionApp(QMainWindow, form_class):
             
             self.display_image(display_frame)
             if self.reference_image is not None:
-                self.inspect_image()
+                if self.auto_mode: # Auto mode 일 때 자동 검사
+                    self.inspect_image()
+
         else:
             # 프레임 읽기 실패 시 재시도
             self.camera.release()
